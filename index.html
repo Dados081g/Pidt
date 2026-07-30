@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0e17" />
+  <title>GabstyStore</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --card: #121826;
+      --card2: #1a2234;
+      --text: #e8edf5;
+      --muted: #8b95a8;
+      --accent: #f5a623;
+      --orange: #ff6b35;
+      --blue: #3b82f6;
+      --purple: #8b5cf6;
+      --green: #22c55e;
+      --cyan: #06b6d4;
+      --red: #ef4444;
+      --pink: #ec4899;
+      --border: rgba(245, 166, 35, 0.2);
+      --glow: rgba(245, 166, 35, 0.25);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    body {
+      background-image:
+        radial-gradient(ellipse 90% 50% at 50% -15%, rgba(245, 166, 35, 0.1), transparent),
+        radial-gradient(ellipse 50% 40% at 100% 100%, rgba(59, 130, 246, 0.06), transparent);
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    .app {
+      max-width: 440px;
+      margin: 0 auto;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: 12px 16px 40px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Top bar */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0 12px;
+      position: relative;
+      z-index: 50;
+    }
+    .topbar-logo {
+      font-size: 15px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .burger {
+      width: 40px; height: 40px;
+      border: none; background: var(--card);
+      border-radius: 12px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 5px;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .burger span {
+      display: block; width: 18px; height: 2px;
+      background: var(--text); border-radius: 2px;
+      transition: 0.25s;
+    }
+    .burger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .burger.open span:nth-child(2) { opacity: 0; }
+    .burger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    /* Side menu */
+    .side-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 90;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .side-overlay.show { opacity: 1; pointer-events: auto; }
+
+    .side-menu {
+      position: fixed; top: 0; right: 0;
+      width: 280px; max-width: 85vw;
+      height: 100%; height: 100dvh;
+      background: var(--card);
+      z-index: 100;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+      padding: 20px 16px;
+      display: flex; flex-direction: column;
+      box-shadow: -8px 0 30px rgba(0,0,0,0.4);
+    }
+    .side-menu.show { transform: translateX(0); }
+
+    .side-menu h3 {
+      font-size: 13px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: 16px; padding: 0 8px;
+    }
+    .side-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 12px; border-radius: 12px;
+      background: none; border: none; color: var(--text);
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      width: 100%; text-align: left; transition: background 0.15s;
+    }
+    .side-item:active { background: var(--card2); }
+    .side-item .si { font-size: 20px; width: 28px; text-align: center; }
+
+    /* Screens */
+    .screen { display: none; animation: fadeIn 0.28s ease; flex: 1; flex-direction: column; }
+    .screen.active { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .header { text-align: center; padding: 8px 0 20px; }
+    .header h1 {
+      font-size: 24px; font-weight: 800;
+      background: linear-gradient(135deg, #fff, var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .header p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      color: var(--muted); font-size: 14px; background: none; border: none;
+      cursor: pointer; padding: 6px 0 12px;
+    }
+    .back-btn:active { color: var(--text); }
+
+    .menu-grid { display: flex; flex-direction: column; gap: 12px; }
+
+    .card-btn {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 18px; padding: 16px 18px;
+      display: flex; align-items: center; gap: 14px;
+      cursor: pointer; transition: all 0.2s;
+      text-align: left; width: 100%; color: var(--text);
+    }
+    .card-btn:active { transform: scale(0.97); }
+
+    .card-btn.color-orange { border-color: rgba(255,107,53,0.35); }
+    .card-btn.color-orange:active { box-shadow: 0 0 20px rgba(255,107,53,0.3); }
+    .card-btn.color-blue { border-color: rgba(59,130,246,0.35); }
+    .card-btn.color-blue:active { box-shadow: 0 0 20px rgba(59,130,246,0.3); }
+    .card-btn.color-purple { border-color: rgba(139,92,246,0.35); }
+    .card-btn.color-purple:active { box-shadow: 0 0 20px rgba(139,92,246,0.3); }
+    .card-btn.color-green { border-color: rgba(34,197,94,0.35); }
+    .card-btn.color-green:active { box-shadow: 0 0 20px rgba(34,197,94,0.3); }
+    .card-btn.color-cyan { border-color: rgba(6,182,212,0.35); }
+    .card-btn.color-cyan:active { box-shadow: 0 0 20px rgba(6,182,212,0.3); }
+    .card-btn.color-pink { border-color: rgba(236,72,153,0.35); }
+    .card-btn.color-pink:active { box-shadow: 0 0 20px rgba(236,72,153,0.3); }
+    .card-btn.color-gold { border-color: rgba(245,166,35,0.4); }
+    .card-btn.color-gold:active { box-shadow: 0 0 20px rgba(245,166,35,0.3); }
+
+    .card-icon {
+      width: 50px; height: 50px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; flex-shrink: 0;
+    }
+    .icon-orange { background: linear-gradient(145deg, #3d2010, #1a1008); }
+    .icon-blue { background: linear-gradient(145deg, #0f1e3d, #0a1228); }
+    .icon-purple { background: linear-gradient(145deg, #2a1a3d, #160e28); }
+    .icon-green { background: linear-gradient(145deg, #0f2a1a, #0a1a10); }
+    .icon-cyan { background: linear-gradient(145deg, #0a2a2a, #061818); }
+    .icon-pink { background: linear-gradient(145deg, #2a1020, #1a0a14); }
+    .icon-gold { background: linear-gradient(145deg, #2a1f0a, #1a1408); }
+
+    .card-info { flex: 1; }
+    .card-info h3 { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+    .card-info span { font-size: 12px; color: var(--muted); }
+    .card-arrow { color: var(--muted); font-size: 18px; }
+    .card-price {
+      font-size: 15px; font-weight: 800;
+      padding: 4px 10px; border-radius: 8px;
+    }
+    .price-orange { color: var(--orange); background: rgba(255,107,53,0.12); }
+    .price-blue { color: var(--blue); background: rgba(59,130,246,0.12); }
+    .price-purple { color: var(--purple); background: rgba(139,92,246,0.12); }
+
+    .product-hero {
+      background: linear-gradient(160deg, #1a1408, var(--card));
+      border: 1px solid var(--border); border-radius: 22px;
+      padding: 28px 20px; text-align: center; margin-bottom: 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 24px var(--glow);
+    }
+    .product-hero .emoji { font-size: 48px; margin-bottom: 10px; }
+    .product-hero h2 { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .product-hero .price { font-size: 32px; font-weight: 800; color: var(--accent); margin: 12px 0 4px; }
+    .product-hero .desc { color: var(--muted); font-size: 13px; }
+
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 15px; border: none; border-radius: 14px;
+      font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--orange));
+      color: #0a0e17; box-shadow: 0 4px 20px var(--glow);
+    }
+    .btn-green {
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      color: #fff; box-shadow: 0 4px 20px rgba(34,197,94,0.35);
+    }
+    .btn-blue {
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      color: #fff; box-shadow: 0 4px 20px rgba(59,130,246,0.35);
+    }
+    .btn-purple {
+      background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+      color: #fff; box-shadow: 0 4px 20px rgba(139,92,246,0.35);
+    }
+    .btn-outline {
+      background: transparent; border: 1px solid rgba(255,255,255,0.12);
+      color: var(--text); margin-top: 10px;
+    }
+    .btn-danger {
+      background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3);
+      color: var(--red);
+    }
+
+    .pay-box {
+      background: var(--card); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 18px; padding: 18px; margin-bottom: 16px;
+    }
+    .pay-row {
+      display: flex; justify-content: space-between; padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px;
+    }
+    .pay-row:last-child { border-bottom: none; }
+    .pay-row .val { font-weight: 700; }
+    .pay-row.total .val { color: var(--accent); font-size: 18px; }
+
+    .success-box {
+      background: linear-gradient(160deg, #0d2818, var(--card));
+      border: 1px solid rgba(34,197,94,0.3); border-radius: 22px;
+      padding: 28px 20px; text-align: center; margin-bottom: 20px;
+    }
+    .success-box .big { font-size: 52px; margin-bottom: 10px; }
+    .success-box h2 { font-size: 20px; margin-bottom: 6px; color: var(--green); }
+    .key-display {
+      background: #0a0e17; border: 1px dashed rgba(34,197,94,0.4);
+      border-radius: 12px; padding: 16px; margin: 14px 0;
+      font-size: 17px; font-weight: 700; letter-spacing: 0.04em;
+      word-break: break-all; color: #fff;
+    }
+
+    .admin-login {
+      background: var(--card); border-radius: 18px; padding: 24px 20px; margin-top: 12px;
+    }
+    .admin-login input, .admin-panel select {
+      width: 100%; padding: 13px 14px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1); background: var(--bg);
+      color: var(--text); font-size: 15px; margin: 10px 0 14px; outline: none;
+    }
+    .admin-login input:focus, .admin-panel select:focus, .admin-panel textarea:focus {
+      border-color: var(--accent);
+    }
+    .admin-panel textarea {
+      width: 100%; min-height: 120px; padding: 12px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1); background: var(--bg);
+      color: var(--text); font-size: 13px; font-family: inherit;
+      resize: vertical; outline: none; margin-bottom: 10px;
+    }
+    .admin-panel label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+
+    .stat-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .stat {
+      flex: 1; background: var(--card2); border-radius: 12px;
+      padding: 12px 8px; text-align: center;
+    }
+    .stat .num { font-size: 20px; font-weight: 800; color: var(--accent); }
+    .stat .lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+    .keys-list {
+      max-height: 160px; overflow-y: auto; background: var(--bg);
+      border-radius: 12px; padding: 8px; margin-bottom: 10px; font-size: 12px;
+    }
+    .keys-list .key-item {
+      padding: 5px 6px; border-bottom: 1px solid rgba(255,255,255,0.04);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .keys-list .key-item:last-child { border-bottom: none; }
+    .keys-list .used { opacity: 0.4; text-decoration: line-through; }
+
+    .legal-box {
+      background: var(--card); border-radius: 16px; padding: 18px;
+      max-height: 60vh; overflow-y: auto; font-size: 13px; line-height: 1.55;
+      color: var(--muted); margin-bottom: 16px;
+    }
+    .legal-box h2 { color: var(--text); font-size: 16px; margin-bottom: 10px; }
+    .legal-box h3 { color: var(--text); font-size: 14px; margin: 14px 0 6px; }
+    .legal-box p { margin-bottom: 8px; }
+    .legal-box strong { color: var(--text); }
+
+    .support-box {
+      background: var(--card); border: 1px solid rgba(59,130,246,0.25);
+      border-radius: 18px; padding: 28px 20px; text-align: center;
+    }
+    .support-box .big { font-size: 48px; margin-bottom: 12px; }
+    .support-box h2 { font-size: 18px; margin-bottom: 10px; }
+    .support-box p { color: var(--muted); font-size: 14px; line-height: 1.5; margin-bottom: 16px; }
+    .support-box a {
+      color: var(--blue); font-weight: 700; font-size: 16px; text-decoration: none;
+    }
+
+    .toast {
+      position: fixed; bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1a2234; border: 1px solid var(--border);
+      color: #fff; padding: 12px 22px; border-radius: 12px;
+      font-size: 13px; font-weight: 600; z-index: 200;
+      opacity: 0; transition: all 0.3s; pointer-events: none;
+      max-width: 90%; text-align: center;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .footer {
+      margin-top: auto; padding-top: 20px; text-align: center;
+      font-size: 11px; color: var(--muted); opacity: 0.55;
+    }
+    .empty-keys { text-align: center; color: var(--muted); padding: 16px; font-size: 13px; }
+
+    .product-tabs { display: flex; gap: 8px; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <div class="topbar-logo">GabstyStore</div>
+      <button class="burger" id="burger" onclick="toggleSide()">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+    <!-- SIDE MENU -->
+    <div class="side-overlay" id="sideOverlay" onclick="closeSide()"></div>
+    <div class="side-menu" id="sideMenu">
+      <h3>Меню</h3>
+      <button class="side-item" onclick="closeSide(); go('support')">
+        <span class="si">💬</span> Поддержка
+      </button>
+      <button class="side-item" onclick="closeSide(); go('offer')">
+        <span class="si">📄</span> Пользовательское соглашение
+      </button>
+      <button class="side-item" onclick="closeSide(); go('privacy')">
+        <span class="si">🔒</span> Политика конфиденциальности
+      </button>
+      <button class="side-item" onclick="closeSide(); go('home')">
+        <span class="si">🏠</span> На главную
+      </button>
+    </div>
+
+    <!-- HOME -->
+    <div class="screen active" id="screen-home">
+      <div class="header">
+        <h1>Магазин ключей</h1>
+        <p>GabstyStore — современный магаз с ключами на читы на пабг</p>
+      </div>
+      <div class="menu-grid">
+        <button class="card-btn color-gold" onclick="go('catalog')">
+          <div class="card-icon icon-gold">📦</div>
+          <div class="card-info">
+            <h3>Каталог</h3>
+            <span>Ключи</span>
+          </div>
+          <div class="card-arrow">›</div>
+        </button>
+        <button class="card-btn color-purple" onclick="go('admin-login')">
+          <div class="card-icon icon-purple">🔐</div>
+          <div class="card-info">
+            <h3>Админ-панель</h3>
+            <span>Управление ключами</span>
+          </div>
+          <div class="card-arrow">›</div>
+        </button>
+      </div>
+      <div class="footer">GabstyStore · Telegram Mini App</div>
+    </div>
+
+    <!-- CATALOG -->
+    <div class="screen" id="screen-catalog">
+      <button class="back-btn" onclick="go('home')">‹ Назад</button>
+      <div class="header" style="padding-top:0">
+        <h1>Каталог</h1>
+        <p>Выбери игру</p>
+      </div>
+      <div class="menu-grid">
+        <button class="card-btn color-orange" onclick="go('pubg')">
+          <div class="card-icon icon-orange">🪖</div>
+          <div class="card-info">
+            <h3>PUBG Mobile</h3>
+            <span>Ключи</span>
+          </div>
+          <div class="card-arrow">›</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- PUBG -->
+    <div class="screen" id="screen-pubg">
+      <button class="back-btn" onclick="go('catalog')">‹ Назад</button>
+      <div class="header" style="padding-top:0">
+        <h1>PUBG Mobile</h1>
+        <p>Выбери товар</p>
+      </div>
+      <div class="menu-grid">
+        <button class="card-btn color-cyan" onclick="go('zolo')">
+          <div class="card-icon icon-cyan">⭐</div>
+          <div class="card-info">
+            <h3>Zolo</h3>
+            <span>Ключи Zolo</span>
+          </div>
+          <div class="card-arrow">›</div>
+        </button>
+        <button class="card-btn color-green" onclick="go('zmod')">
+          <div class="card-icon icon-green">⚡</div>
+          <div class="card-info">
+            <h3>Z mod</h3>
+            <span>Ключи Z mod</span>
+          </div>
+          <div class="card-arrow">›</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- ZOLO PRODUCTS -->
+    <div class="screen" id="screen-zolo">
+      <button class="back-btn" onclick="go('pubg')">‹ Назад</button>
+      <div class="header" style="padding-top:0">
+        <h1>Zolo</h1>
+        <p>Доступные товары</p>
+      </div>
+      <div class="menu-grid">
+        <button class="card-btn color-orange" onclick="selectProduct('zolo1d')">
+          <div class="card-icon icon-orange">🔑</div>
+          <div class="card-info">
+            <h3>Zolo 1D</h3>
+            <span>1 день</span>
+          </div>
+          <span class="card-price price-orange">170 ₽</span>
+        </button>
+        <button class="card-btn color-blue" onclick="selectProduct('zolo3d')">
+          <div class="card-icon icon-blue">🔑</div>
+          <div class="card-info">
+            <h3>Zolo 3D</h3>
+            <span>3 дня</span>
+          </div>
+          <span class="card-price price-blue">400 ₽</span>
+        </button>
+        <button class="card-btn color-purple" onclick="selectProduct('zolo7d')">
+          <div class="card-icon icon-purple">🔑</div>
+          <div class="card-info">
+            <h3>Zolo 7D</h3>
+            <span>7 дней</span>
+          </div>
+          <span class="card-price price-purple">800 ₽</span>
+        </button>
+        <button class="card-btn color-cyan" onclick="openReview('https://t.me/c/3900617690/2')">
+          <div class="card-icon icon-cyan">👁</div>
+          <div class="card-info">
+            <h3>Обзор</h3>
+            <span>Посмотреть обзор Zolo</span>
+          </div>
+          <div class="card-arrow">›</div>
+        </button>
+      </div>
+    </div>
+
+
+    <!-- ZMOD PRODUCTS -->
+    <div class="screen" id="screen-zmod">
+      <button class="back-btn" onclick="go('pubg')">‹ Назад</button>
+      <div class="header" style="padding-top:0">
+        <h1>Z mod</h1>
+        <p>Доступные товары</p>
+      </div>
+      <div class="menu-grid">
+        <button class="card-btn color-green" onclick="selectProduct('zmod1d')">
+          <div class="card-icon icon-green">🔑</div>
+          <div class="card-info">
+            <h3>Z mod 1D</h3>
+            <span>1 день</span>
+          </div>
+          <span class="card-price price-orange">150 ₽</span>
+        </button>
+        <button class="card-btn color-blue" onclick="selectProduct('zmod3d')">
+          <div class="card-icon icon-blue">🔑</div>
+          <div class="card-info">
+            <h3>Z mod 3D</h3>
+            <span>3 дня</span>
+          </div>
+          <span class="card-price price-blue">350 ₽</span>
+        </button>
+        <button class="card-btn color-purple" onclick="selectProduct('zmod7d')">
+          <div class="card-icon icon-purple">🔑</div>
+          <div class="card-info">
+            <h3>Z mod 7D</h3>
+            <span>7 дней</span>
+          </div>
+          <span class="card-price price-purple">600 ₽</span>
+        </button>
+        <button class="card-btn color-cyan" onclick="openReview('https://t.me/c/3900617690/3')">
+          <div class="card-icon icon-cyan">👁</div>
+          <div class="card-info">
+            <h3>Обзор</h3>
+            <span>Посмотреть обзор Z mod</span>
+          </div>
+          <div class="card-arrow">›</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- PRODUCT -->
+    <div class="screen" id="screen-product">
+      <button class="back-btn" id="prod-back" onclick="goProductBack()">‹ Назад</button>
+      <div class="product-hero">
+        <div class="emoji">🔑</div>
+        <h2 id="prod-name">Zolo 1D</h2>
+        <div class="desc" id="prod-desc">PUBG Mobile · 1 день</div>
+        <div class="price" id="prod-price">170 ₽</div>
+        <div class="desc" id="stock-info">Загрузка...</div>
+      </div>
+      <button class="btn btn-primary" id="buy-btn" onclick="go('pay')">🛒  Купить</button>
+      <button class="btn btn-outline" onclick="goProductBack()">Назад к списку</button>
+    </div>
+
+    <!-- PAY -->
+    <div class="screen" id="screen-pay">
+      <button class="back-btn" onclick="go('product')">‹ Назад</button>
+      <div class="header" style="padding-top:0">
+        <h1>Оплата</h1>
+        <p>Проверь заказ</p>
+      </div>
+      <div class="pay-box">
+        <div class="pay-row"><span>Товар</span><span class="val" id="pay-name">Zolo 1D</span></div>
+        <div class="pay-row"><span>Игра</span><span class="val">PUBG Mobile</span></div>
+        <div class="pay-row"><span>Количество</span><span class="val">1 шт.</span></div>
+        <div class="pay-row total"><span>Итого</span><span class="val" id="pay-price">170 ₽</span></div>
+      </div>
+      <button class="btn btn-green" id="pay-btn" onclick="doPay()">💳  Оплатить</button>
+      <button class="btn btn-outline" onclick="go('product')">Отмена</button>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="screen" id="screen-success">
+      <div class="success-box">
+        <div class="big">✅</div>
+        <h2>Оплата прошла!</h2>
+        <p style="color:var(--muted);font-size:13px">Ваш ключ:</p>
+        <div class="key-display" id="delivered-key">—</div>
+      </div>
+      <button class="btn btn-primary" onclick="copyKey()">📋  Скопировать ключ</button>
+      <button class="btn btn-outline" onclick="go('home')">На главную</button>
+    </div>
+
+    <!-- SUPPORT -->
+    <div class="screen" id="screen-support">
+      <button class="back-btn" onclick="go('home')">‹ Назад</button>
+      <div class="support-box">
+        <div class="big">💬</div>
+        <h2>Поддержка</h2>
+        <p>Если будет проблема — отпишите</p>
+        <a href="https://t.me/Forevebz" target="_blank" onclick="openSupport()">@Forevebz</a>
+      </div>
+    </div>
+
+    <!-- OFFER -->
+    <div class="screen" id="screen-offer">
+      <button class="back-btn" onclick="go('home')">‹ Назад</button>
+      <div class="header" style="padding-top:0">
+        <h1 style="font-size:18px">Договор оферты</h1>
+      </div>
+      <div class="legal-box" id="offer-text"></div>
+      <button class="btn btn-outline" onclick="go('home')">Закрыть</button>
+    </div>
+
+    <!-- PRIVACY -->
+    <div class="screen" id="screen-privacy">
+      <button class="back-btn" onclick="go('home')">‹ Назад</button>
+      <div class="header" style="padding-top:0">
+        <h1 style="font-size:18px">Политика конфиденциальности</h1>
+      </div>
+      <div class="legal-box" id="privacy-text"></div>
+      <button class="btn btn-outline" onclick="go('home')">Закрыть</button>
+    </div>
+
+    <!-- ADMIN LOGIN -->
+    <div class="screen" id="screen-admin-login">
+      <button class="back-btn" onclick="go('home')">‹ Назад</button>
+      <div class="header" style="padding-top:0">
+        <h1>Админ-панель</h1>
+        <p>Вход по паролю</p>
+      </div>
+      <div class="admin-login">
+        <label style="font-size:12px;color:var(--muted)">Пароль</label>
+        <input type="password" id="admin-pass" placeholder="Введите пароль" autocomplete="off" />
+        <button class="btn btn-primary" onclick="adminLogin()">Войти</button>
+      </div>
+    </div>
+
+    <!-- ADMIN PANEL -->
+    <div class="screen" id="screen-admin">
+      <button class="back-btn" onclick="go('home')">‹ Выйти</button>
+      <div class="header" style="padding-top:0">
+        <h1>Админ-панель</h1>
+        <p>Ключи для автовыдачи</p>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat"><div class="num" id="stat-total">0</div><div class="lbl">Всего</div></div>
+        <div class="stat"><div class="num" id="stat-free">0</div><div class="lbl">Свободно</div></div>
+        <div class="stat"><div class="num" id="stat-used">0</div><div class="lbl">Выдано</div></div>
+      </div>
+
+      <div class="admin-panel">
+        <label>Товар для загрузки ключей</label>
+        <select id="admin-product">
+          <option value="zolo1d">Zolo 1D — 170 ₽</option>
+          <option value="zolo3d">Zolo 3D — 400 ₽</option>
+          <option value="zolo7d">Zolo 7D — 800 ₽</option>
+          <option value="zmod1d">Z mod 1D — 150 ₽</option>
+          <option value="zmod3d">Z mod 3D — 350 ₽</option>
+          <option value="zmod7d">Z mod 7D — 600 ₽</option>
+        </select>
+
+        <label>Ключи (каждый с новой строки)</label>
+        <textarea id="keys-input" placeholder="KEY-001&#10;KEY-002&#10;KEY-003"></textarea>
+
+        <button class="btn btn-primary" onclick="uploadKeys()">⬆️  Загрузить ключи</button>
+        <button class="btn btn-outline" style="margin-top:8px" onclick="refreshAdmin()">🔄  Обновить</button>
+        <button class="btn btn-danger" style="margin-top:8px" onclick="clearProductKeys()">🗑  Очистить ключи этого товара</button>
+      </div>
+
+      <div style="margin-top:16px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Список ключей выбранного товара</div>
+        <div class="keys-list" id="keys-list"><div class="empty-keys">Ключей пока нет</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    var tg = window.Telegram && window.Telegram.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      try { tg.setHeaderColor('#0a0e17'); tg.setBackgroundColor('#0a0e17'); } catch(e) {}
+    }
+
+    var ADMIN_PASS = 'LkdfVduhvcSibxhgNzcthsv842Hdhz';
+    var STORAGE = 'gabsty_keys_v2';
+    var currentProduct = 'zolo1d';
+    var lastKey = '';
+
+    var PRODUCTS = {
+      zolo1d: { name: 'Zolo 1D', desc: 'PUBG Mobile · 1 день', price: 170, priceText: '170 ₽', back: 'zolo' },
+      zolo3d: { name: 'Zolo 3D', desc: 'PUBG Mobile · 3 дня', price: 400, priceText: '400 ₽', back: 'zolo' },
+      zolo7d: { name: 'Zolo 7D', desc: 'PUBG Mobile · 7 дней', price: 800, priceText: '800 ₽', back: 'zolo' },
+      zmod1d: { name: 'Z mod 1D', desc: 'PUBG Mobile · 1 день', price: 150, priceText: '150 ₽', back: 'zmod' },
+      zmod3d: { name: 'Z mod 3D', desc: 'PUBG Mobile · 3 дня', price: 350, priceText: '350 ₽', back: 'zmod' },
+      zmod7d: { name: 'Z mod 7D', desc: 'PUBG Mobile · 7 дней', price: 600, priceText: '600 ₽', back: 'zmod' }
+    };
+
+    /* ---- Side menu ---- */
+    function toggleSide() {
+      var m = document.getElementById('sideMenu');
+      var o = document.getElementById('sideOverlay');
+      var b = document.getElementById('burger');
+      var open = m.classList.contains('show');
+      if (open) { m.classList.remove('show'); o.classList.remove('show'); b.classList.remove('open'); }
+      else { m.classList.add('show'); o.classList.add('show'); b.classList.add('open'); }
+    }
+    function closeSide() {
+      document.getElementById('sideMenu').classList.remove('show');
+      document.getElementById('sideOverlay').classList.remove('show');
+      document.getElementById('burger').classList.remove('open');
+    }
+
+    /* ---- Navigation ---- */
+    function go(name) {
+      closeSide();
+      document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+      var el = document.getElementById('screen-' + name);
+      if (el) el.classList.add('active');
+
+      if (name === 'product') updateStock();
+      if (name === 'admin') refreshAdmin();
+      if (name === 'offer') renderOffer();
+      if (name === 'privacy') renderPrivacy();
+
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
+      if (tg && tg.BackButton) {
+        if (name === 'home') tg.BackButton.hide();
+        else {
+          tg.BackButton.show();
+          tg.BackButton.onClick(function() { historyBack(name); });
+        }
+      }
+    }
+
+    function historyBack(cur) {
+      var map = {
+        catalog: 'home', pubg: 'catalog', zolo: 'pubg', zmod: 'pubg', product: 'zolo',
+        pay: 'product', success: 'home', support: 'home', offer: 'home',
+        privacy: 'home', 'admin-login': 'home', admin: 'home'
+      };
+      go(map[cur] || 'home');
+    }
+
+    /* ---- Products ---- */
+    function selectProduct(id) {
+      currentProduct = id;
+      var p = PRODUCTS[id];
+      document.getElementById('prod-name').textContent = p.name;
+      document.getElementById('prod-desc').textContent = p.desc;
+      document.getElementById('prod-price').textContent = p.priceText;
+      document.getElementById('pay-name').textContent = p.name;
+      document.getElementById('pay-price').textContent = p.priceText;
+      document.getElementById('pay-btn').textContent = '💳  Оплатить ' + p.priceText;
+      go('product');
+    }
+
+    function goProductBack() {
+      var p = PRODUCTS[currentProduct];
+      go(p && p.back ? p.back : 'zolo');
+    }
+
+    /* ---- Keys storage ---- */
+    function getAll() {
+      try { return JSON.parse(localStorage.getItem(STORAGE) || '{}'); }
+      catch(e) { return {}; }
+    }
+    function saveAll(data) { localStorage.setItem(STORAGE, JSON.stringify(data)); }
+
+    function getKeys(pid) {
+      var all = getAll();
+      return all[pid] || [];
+    }
+    function saveKeys(pid, keys) {
+      var all = getAll();
+      all[pid] = keys;
+      saveAll(all);
+    }
+    function getFree(pid) {
+      return getKeys(pid).filter(function(k) { return !k.used; });
+    }
+
+    function updateStock() {
+      var free = getFree(currentProduct).length;
+      var el = document.getElementById('stock-info');
+      if (free > 0) {
+        el.textContent = 'В наличии: ' + free + ' шт.';
+        el.style.color = 'var(--green)';
+      } else {
+        el.textContent = 'Нет в наличии';
+        el.style.color = 'var(--red)';
+      }
+    }
+
+    /* ---- Pay & deliver ---- */
+    function doPay() {
+      var free = getFree(currentProduct);
+      if (free.length === 0) {
+        toast('Нет свободных ключей! Обратитесь в поддержку.');
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+        return;
+      }
+      var btn = document.getElementById('pay-btn');
+      btn.disabled = true;
+      btn.textContent = 'Обработка...';
+
+      setTimeout(function() {
+        var keys = getKeys(currentProduct);
+        var idx = -1;
+        for (var i = 0; i < keys.length; i++) {
+          if (!keys[i].used) { idx = i; break; }
+        }
+        if (idx === -1) {
+          toast('Ключи закончились');
+          btn.disabled = false;
+          btn.textContent = '💳  Оплатить ' + PRODUCTS[currentProduct].priceText;
+          return;
+        }
+        keys[idx].used = true;
+        keys[idx].soldAt = new Date().toISOString();
+        saveKeys(currentProduct, keys);
+
+        lastKey = keys[idx].code;
+        document.getElementById('delivered-key').textContent = lastKey;
+        btn.disabled = false;
+        btn.textContent = '💳  Оплатить ' + PRODUCTS[currentProduct].priceText;
+
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        go('success');
+      }, 1100);
+    }
+
+    function copyKey() {
+      var key = lastKey || document.getElementById('delivered-key').textContent;
+      if (!key || key === '—') return;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(key).then(function() { toast('Ключ скопирован!'); });
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = key; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+        toast('Ключ скопирован!');
+      }
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    }
+
+    function openSupport() {
+      if (tg && tg.openTelegramLink) tg.openTelegramLink('https://t.me/Forevebz');
+      else window.open('https://t.me/Forevebz', '_blank');
+    }
+
+    function openReview(url) {
+      if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
+      else window.open(url, '_blank');
+    }
+
+    /* ---- Admin ---- */
+    function adminLogin() {
+      var pass = document.getElementById('admin-pass').value.trim();
+      if (pass === ADMIN_PASS) {
+        document.getElementById('admin-pass').value = '';
+        go('admin');
+        toast('Вход выполнен');
+      } else {
+        toast('Неверный пароль');
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+      }
+    }
+    document.getElementById('admin-pass').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') adminLogin();
+    });
+    document.getElementById('admin-product').addEventListener('change', refreshAdmin);
+
+    function uploadKeys() {
+      var pid = document.getElementById('admin-product').value;
+      var raw = document.getElementById('keys-input').value.trim();
+      if (!raw) { toast('Вставь ключи'); return; }
+
+      var lines = raw.split(/\r?\n/).map(function(l) { return l.trim(); }).filter(Boolean);
+      var existing = getKeys(pid);
+      var codes = {};
+      existing.forEach(function(k) { codes[k.code] = true; });
+
+      var added = 0;
+      lines.forEach(function(code) {
+        if (!codes[code]) {
+          existing.push({ code: code, used: false, addedAt: new Date().toISOString() });
+          codes[code] = true;
+          added++;
+        }
+      });
+      saveKeys(pid, existing);
+      document.getElementById('keys-input').value = '';
+      refreshAdmin();
+      toast('Загружено: ' + added + ' ключей');
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    }
+
+    function refreshAdmin() {
+      var pid = document.getElementById('admin-product').value;
+      var keys = getKeys(pid);
+      var free = keys.filter(function(k) { return !k.used; }).length;
+      var used = keys.filter(function(k) { return k.used; }).length;
+      document.getElementById('stat-total').textContent = keys.length;
+      document.getElementById('stat-free').textContent = free;
+      document.getElementById('stat-used').textContent = used;
+
+      var box = document.getElementById('keys-list');
+      if (keys.length === 0) {
+        box.innerHTML = '<div class="empty-keys">Ключей пока нет</div>';
+        return;
+      }
+      box.innerHTML = keys.map(function(k) {
+        return '<div class="key-item ' + (k.used ? 'used' : '') + '">' +
+          '<span>' + k.code + '</span>' +
+          '<span style="font-size:10px;color:var(--muted)">' + (k.used ? 'выдан' : 'свободен') + '</span></div>';
+      }).join('');
+    }
+
+    function clearProductKeys() {
+      var pid = document.getElementById('admin-product').value;
+      if (!confirm('Удалить все ключи для ' + PRODUCTS[pid].name + '?')) return;
+      saveKeys(pid, []);
+      refreshAdmin();
+      toast('Ключи удалены');
+    }
+
+    /* ---- Legal texts ---- */
+    function renderOffer() {
+      document.getElementById('offer-text').innerHTML = `
+<strong>ДОГОВОР ПУБЛИЧНОЙ ОФФЕРТЫ</strong><br>
+на покупку цифрового продукта<br><br>
+Дата последнего обновления: 04.05.2026<br><br>
+Продавец: Администрация сайта GabstyStore, e-mail: l84083186@gmail.com, именуемая в дальнейшем «Продавец», публикует настоящую Оферту для неограниченного круга лиц — «Покупателей».<br>
+Настоящий документ является публичной офертой (приглашением заключить договор) в соответствии со статьей 437 Гражданского кодекса РФ.<br><br>
+<strong>1. Термины и определения</strong><br>
+1.2. Покупатель — физическое лицо, обладающее полной дееспособностью, осуществившее акцепт настоящего Договора.<br>
+1.3. Программа (Продукт) — программное обеспечение (включая, но не ограничиваясь: читы, модификации, скрипты, боты, автокликеры), предназначенное для изменения игрового процесса сторонних видеоигр. Продавец не является разработчиком или правообладателем указанных видеоигр.<br>
+1.4. Акцепт — полное и безоговорочное принятие условий Договора путём оплаты доступа к Программе.<br><br>
+<strong>2. Предмет договора</strong><br>
+2.1. Продавец предоставляет Покупателю неисключительную лицензию (право использования) на Программу на условиях простой (неисключительной) лицензии. Покупатель обязуется оплатить это право.<br>
+2.2. Лицензия предоставляется для личного некоммерческого использования на территории всех стран мира.<br><br>
+<strong>3. Акцепт и заключение договора</strong><br>
+3.1. Настоящий Договор является публичной офертой (ст. 437 ГК РФ).<br>
+3.2. Акцептом считается момент успешного списания денежных средств со счёта Покупателя в пользу Продавца при оформлении заказа на Платформе.<br>
+3.3. Совершая акцепт, Покупатель подтверждает, что:<br>
+а) ознакомился с условиями Договора, Политикой конфиденциальности и правилами платёжной системы;<br>
+б) понимает, что использование Программы может нарушать Пользовательское соглашение (EULA) конкретной видеоигры и повлечь блокировку игрового аккаунта;<br>
+в) принимает на себя 100% рисков блокировки аккаунтов в видеоиграх и обязуется не предъявлять претензий Продавцу.<br><br>
+<strong>4. Цена и порядок оплаты</strong><br>
+4.1. Стоимость доступа к Программам указывается на Платформе в рублях РФ либо в иной валюте по курсу платёжной системы.<br>
+4.2. Оплата производится через платёжных агентов (платёжную систему). Продавец не обрабатывает и не хранит платёжные данные Покупателя.<br>
+4.3. Продавец вправе изменять цены в одностороннем порядке. Цена, зафиксированная в момент оплаты конкретного заказа, изменению не подлежит.<br><br>
+<strong>5. Порядок предоставления доступа</strong><br>
+5.1. В течение 5 (Пяти) минут после оплаты Продавец направляет на электронную почту Покупателя или в Личный кабинет уникальный ключ активации или ссылку на скачивание.<br>
+5.2. При неполучении доступа Покупатель обязан уведомить Продавца через форму обратной связи в течение 24 часов. По истечении 24 часов претензии по неполучению доступа не принимаются.<br><br>
+<strong>6. Возврат денежных средств</strong><br>
+6.1. Возврат средств осуществляется исключительно при одновременном соблюдении условий, указанных в полной версии договора (техническая неисправность, видеозапись, выполнение требований поддержки, удалённый доступ).<br>
+6.2. Решение о возврате принимает Продавец. Срок рассмотрения — до 14 рабочих дней.<br>
+6.3–6.5. Возврат не осуществляется при отказе от требований, проблемах из-за антивируса, обновления игры, субъективных претензий, бане аккаунта, а также за продукт надлежащего качества (ч. 9 ст. 26.1 ЗоЗПП).<br><br>
+<strong>7. Техническая поддержка</strong><br>
+7.1–7.4. Бесплатная поддержка в течение срока лицензии. Время ответа — до 24 часов в рабочие дни.<br><br>
+<strong>8. Отказ от гарантий (AS IS)</strong><br>
+Программа предоставляется «как есть». Продавец не гарантирует совместимость, отсутствие ошибок и отсутствие блокировок в играх.<br><br>
+<strong>9. Ответственность Сторон</strong><br>
+Ответственность Продавца ограничена стоимостью оплаченной Программы. Упущенная выгода, баны аккаунтов и внутриигровое имущество не возмещаются.<br><br>
+<strong>10–11. Прочие условия</strong><br>
+Споры рассматриваются по законодательству РФ. Недействительность одного условия не влечёт недействительности остальных.<br><br>
+<strong>12. Контактные данные Продавца</strong><br>
+Наименование: Администрация сайта GabstyStore<br>
+E-mail: l84083186@gmail.com
+      `;
+    }
+
+    function renderPrivacy() {
+      document.getElementById('privacy-text').innerHTML = `
+<strong>ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ</strong><br>
+об обработке персональных данных<br><br>
+Дата последнего обновления: 04.05.2026<br><br>
+Администрация бота и mini app @GabstySTORE_Bot уважительно относится к конфиденциальности персональных данных пользователей. Настоящая Политика объясняет, какие данные могут собираться, для чего они используются и как защищаются.<br><br>
+<strong>1.</strong> Мы можем получать данные, которые пользователь добровольно указывает в формах сайта, а также техническую информацию: IP-адрес, cookies, сведения о браузере, устройстве и действиях на сайте.<br><br>
+<strong>2.</strong> Информация используется для работы сайта, обработки заказов, связи с пользователем, улучшения сервиса и соблюдения требований законодательства.<br><br>
+<strong>3.</strong> Администрация не передаёт персональные данные третьим лицам, кроме случаев, когда это необходимо для обработки платежей, исполнения закона или работы технических подрядчиков с соблюдением конфиденциальности.<br><br>
+<strong>4.</strong> Мы принимаем разумные технические и организационные меры для защиты персональных данных от утраты, изменения, неправомерного доступа и раскрытия.<br><br>
+<strong>5.</strong> Пользователь вправе запросить сведения о своих персональных данных, потребовать их уточнения или удаления в случаях, предусмотренных законом, а также отозвать согласие на обработку.<br><br>
+<strong>6.</strong> Сайт может использовать cookies для корректной работы, аналитики и повышения удобства использования.<br><br>
+<strong>7.</strong> Администрация вправе обновлять настоящую Политику. Новая редакция вступает в силу с момента публикации на сайте.
+      `;
+    }
+
+    function toast(msg) {
+      var t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(function() { t.classList.remove('show'); }, 2300);
+    }
+
+    updateStock();
+  </script>
+</body>
+</html>
